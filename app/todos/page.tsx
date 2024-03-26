@@ -153,7 +153,7 @@ const Todos = () => {
           </SubmitButton>
         </form>
       </div>
-      {!todos ? <p className='mb-2'>Loading for fetching data...</p> : todos[0].error ? <p className='mb-2'>Failing to fetch data, please try again later.</p> : todos.map(todo => (
+      {!todos ? <p className='mb-2'>Loading for fetching data...</p> : todos.map(todo => (
         <div className='flex flex-row items-center last:mb-3 even:bg-slate-50' key={todo.id}>
           <label htmlFor={String(todo.id)} className='has-[:checked]:line-through peer flex flex-row items-center cursor-pointer hover:bg-slate-200 transition-colors p-1 pl-2 rounded-md w-[24rem]'>
             <input
