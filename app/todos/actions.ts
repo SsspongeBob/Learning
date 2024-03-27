@@ -27,10 +27,18 @@ export async function putData(id: number, finished: boolean) {
   throw new Error("Unable to update data...")
 }
 
-// 查
+// 查（全部）
 export async function getData() {
   const { data, error } = await supabase.from("notes").select()
 
   if (!error || data) return data
   throw new Error("Unable to get data...")
+}
+
+// 查 （指定）
+export async function retrieveData(title: string) {
+  const { data, error } = await supabase.from("notes").select("*").eq("title", title)
+
+  if (!error || data) return data
+  throw new Error("Unable to retrieve data...")
 }
