@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useOptimistic } from 'react'
 import { flushSync } from 'react-dom'
 import { addData, getData, deleteData, putData, retrieveData } from './actions'
 import { SubmitButton } from './submit-button'
@@ -9,22 +9,26 @@ interface Msg {
   title: string
   finished: boolean
   error?: boolean
+  pending?: boolean
 }
 
 const Todos = () => {
-  // 获取todos部分
+  // 获取所有todos部分
   const [todos, setTodos] = useState<Array<Msg> | null>(null) // 获取数据库总数据
 
   // 添加todos部分
   const [msg, setMsg] = useState<string>("") // 添加单条todo
-  // const spinRef = useRef<SVGSVGElement | null>(null) // 获取spin SVG标签
   const inputRef = useRef<HTMLInputElement | null>(null) // 获取input框
+  const [optimisticMsg, addOptimistic] = useOptimistic( // 乐观更新数据
+    todos!,
+    (state: Msg[], newMsg: string) => [
+      ...state,
+      { id: 999, title: newMsg, finished: false, pending: true }
+    ]
+  )
 
   // 修改todos部分
   const [selectedId, setSelectedId] = useState<number>(0) // spin显示状态
-
-  // 查找todos部分
-  // 无hook
 
   // 初次渲染获取所有todos
   useEffect(() => {
@@ -59,7 +63,6 @@ const Todos = () => {
     //   setVisible(true)
     // })
     const title = formdata.get("title") as string
-    // 判断输入是否为空
     if (!title) {
       alert("Do not add empty todos!")
       return
@@ -67,6 +70,9 @@ const Todos = () => {
     // 清空输入框 由于渲染机制，这里就有问题 直接setMsg()没反应
     (inputRef.current as HTMLInputElement).value = ""
     setMsg('')
+    // 乐观更新 但会和useFormStatus冲突
+    // addOptimistic(title)
+    // 判断输入是否为空
     // 增加数据
     await addData(title)
     // 重新获取数据
@@ -81,7 +87,7 @@ const Todos = () => {
       setSelectedId(parseInt((e.currentTarget as SVGAElement).dataset.id!))
       try {
         // 根据id删除指定todo
-        const res = await deleteData(parseInt((e.currentTarget as SVGAElement).dataset.id!))
+        await deleteData(parseInt((e.currentTarget as SVGAElement).dataset.id!))
         // 捕获异常
         // if (res[0].error) alert("Delete failed!")
         // 重新获取数据
@@ -101,7 +107,7 @@ const Todos = () => {
     // 显示加载状态
     setSelectedId(parseInt(e.target.id))
     // 更新数据库数据
-    const res = await putData(parseInt(e.target.id), e.target.checked)
+    await putData(parseInt(e.target.id), e.target.checked)
     // 反馈更新不成功
     // if (res[0].error) alert("Update failed!")
     // 重新获取数据
@@ -115,7 +121,6 @@ const Todos = () => {
     // 获取title
     const title = formData.get("title") as string
     // 清空输入框
-    (inputRef.current as HTMLInputElement).value = ""
     setMsg('')
     // 如果输入为空，则为查找全部
     if (!title) {
@@ -143,7 +148,7 @@ const Todos = () => {
           <div className='inline-flex'>
             <SubmitButton
               formAction={addTodo}
-              className="inline-flex font-serif truncate items-center px-2 py-1 mr-1 rounded text-white shadow-inner shadow-slate-400/40 bg-[#37996b]/90 hover:bg-[#37996b]/80 active:bg-[#37996b] active:scale-90 disabled:bg-[#37996b]/60 focus:outline-none transition"
+              className="inline-flex font-serif truncate items-center px-2 py-1 mr-1 rounded text-white shadow-inner shadow-slate-400/40 bg-[#37996b]/90 hover:bg-[#37996b]/80 active:bg-[#37996b] active:scale-90 disabled:bg-[#37996b]/60 disabled:active:scale-100 focus:outline-none transition"
             >
               <svg
                 width="15"
@@ -156,7 +161,7 @@ const Todos = () => {
             </SubmitButton>
             <SubmitButton
               formAction={retrieveTodo}
-              className="inline-flex font-serif truncate items-center px-2 py-1 mr-1 rounded text-white shadow-inner shadow-slate-400/40 bg-[#37996b]/90 hover:bg-[#37996b]/80 active:bg-[#37996b] active:scale-90 disabled:bg-[#37996b]/60 focus:outline-none transition"
+              className="inline-flex font-serif truncate items-center px-2 py-1 mr-1 rounded text-white shadow-inner shadow-slate-400/40 bg-[#37996b]/90 hover:bg-[#37996b]/80 active:bg-[#37996b] active:scale-90 disabled:bg-[#37996b]/60 disabled:active:scale-100 focus:outline-none transition"
             >
               <svg
                 width="15"
@@ -173,7 +178,7 @@ const Todos = () => {
 
         </form>
       </div>
-      {!todos ? <p className='mb-2'>Waiting for fetching data...</p> : todos.map(todo => (
+      {!todos ? <p className='mb-2'>Waiting for fetching data...</p> : optimisticMsg.map(todo => (
         <div className='flex flex-row items-center last:mb-3 even:bg-slate-50' key={todo.id}>
           <label htmlFor={String(todo.id)} className='has-[:checked]:line-through peer flex flex-row items-center cursor-pointer hover:bg-slate-200 transition-colors p-1 pl-2 rounded-md w-[24rem]'>
             <input
@@ -183,7 +188,7 @@ const Todos = () => {
               checked={todo.finished}
               onChange={updateTodo}
             />
-            <p className='truncate'>{todo.title}</p>
+            <p className='truncate'>{todo.title} {!!todo.pending && <small>Waiting...</small>}</p>
           </label>
           {todo.id === selectedId ?
             <svg

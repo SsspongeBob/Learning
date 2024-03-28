@@ -1,6 +1,6 @@
 "use client";
 import { useFormStatus } from "react-dom";
-import { ComponentPropsWithRef, type ComponentProps, ReactElement } from "react";
+import { useEffect, type ComponentProps } from "react";
 
 type Props = ComponentProps<"button"> & {
   pendingText?: string
